@@ -1,0 +1,22 @@
+# Логи
+*.log
+
+# Временные файлы PowerShell
+*.ps1xml
+*.bak
+*.tmp
+
+# Метки о переносе (генерируются скриптом, не нужны в репозитории)
+_moved_date.txt
+
+# Файлы окружения / переменные с секретами (если появятся)
+*.env
+config.local.ps1
+
+# Системные файлы Windows
+Thumbs.db
+desktop.ini
+
+# Файлы IDE
+.vscode/
+*.user
