@@ -1,4 +1,4 @@
-[🇬🇧 English](scheduled-tasks-setup.md) | 🇷🇺 Русский
+[English](scheduled-tasks-setup.md) | Русский
 
 # Настройка задач в Планировщике заданий Windows
 

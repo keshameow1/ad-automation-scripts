@@ -1,4 +1,4 @@
-🇬🇧 English | [🇷🇺 Русский](scheduled-tasks-setup.ru.md)
+English | [Русский](scheduled-tasks-setup.ru.md)
 
 # Setting up Windows Task Scheduler tasks
 
