@@ -1,20 +1,22 @@
-# Настройка задач в Планировщике заданий Windows
+🇬🇧 English | [🇷🇺 Русский](scheduled-tasks-setup.ru.md)
 
-Все три скрипта выполняются еженедельно по воскресеньям с интервалом в
-30 минут, чтобы каждый следующий шаг работал с результатом предыдущего:
+# Setting up Windows Task Scheduler tasks
 
-| Время | Задача | Скрипт |
-|-------|--------|--------|
+All three scripts run weekly on Sundays, 30 minutes apart, so each step
+works on the output of the previous one:
+
+| Time | Task | Script |
+|------|------|--------|
 | 03:00 | `kir_Move-DisabledAccounts` | `move_disabled_accounts.ps1` |
 | 03:30 | `kir_Remove-ThunderbirdProfiles` | `remove_thunderbird_profiles.ps1` |
 | 04:00 | `kir_Cleanup-OldDisabledAccounts` | `cleanup_old_disabled_accounts.ps1` |
 
-Префикс `kir_` используется, чтобы отличать свои задачи от остальных задач
-в Планировщике на сервере. Замените на свой при необходимости.
+The `kir_` prefix is used to tell these tasks apart from other tasks on the
+server. Replace it with your own if needed.
 
-Все команды выполняются в PowerShell с правами администратора.
+All commands below are run in an elevated PowerShell session.
 
-## 1. Перенос отключённых/удалённых в AD учёток
+## 1. Move disabled/deleted AD accounts
 
 ```powershell
 $action = New-ScheduledTaskAction -Execute "PowerShell.exe" `
@@ -22,14 +24,14 @@ $action = New-ScheduledTaskAction -Execute "PowerShell.exe" `
 
 $trigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Sunday -At 3am
 
-$principal = New-ScheduledTaskPrincipal -UserId "СИСТЕМА" -LogonType ServiceAccount -RunLevel Highest
+$principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
 
 Register-ScheduledTask -TaskName "kir_Move-DisabledAccounts" `
     -Action $action -Trigger $trigger -Principal $principal `
-    -Description "Еженедельный перенос профилей отключённых/удалённых в AD учёток в папку _Уволенные"
+    -Description "Weekly move of disabled/deleted AD accounts' profiles into the quarantine folder"
 ```
 
-## 2. Удаление Thunderbird Profiles у уволенных
+## 2. Remove Thunderbird profiles
 
 ```powershell
 $action = New-ScheduledTaskAction -Execute "PowerShell.exe" `
@@ -37,14 +39,14 @@ $action = New-ScheduledTaskAction -Execute "PowerShell.exe" `
 
 $trigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Sunday -At 3:30am
 
-$principal = New-ScheduledTaskPrincipal -UserId "СИСТЕМА" -LogonType ServiceAccount -RunLevel Highest
+$principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
 
 Register-ScheduledTask -TaskName "kir_Remove-ThunderbirdProfiles" `
     -Action $action -Trigger $trigger -Principal $principal `
-    -Description "Еженедельное удаление Thunderbird Profiles у всех в папке '_Уволенные'"
+    -Description "Weekly removal of Thunderbird profiles from every folder in the quarantine"
 ```
 
-## 3. Очистка профилей старше 90 дней
+## 3. Clean up profiles older than 90 days
 
 ```powershell
 $action = New-ScheduledTaskAction -Execute "PowerShell.exe" `
@@ -52,43 +54,42 @@ $action = New-ScheduledTaskAction -Execute "PowerShell.exe" `
 
 $trigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Sunday -At 4am
 
-$principal = New-ScheduledTaskPrincipal -UserId "СИСТЕМА" -LogonType ServiceAccount -RunLevel Highest
+$principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
 
 Register-ScheduledTask -TaskName "kir_Cleanup-OldDisabledAccounts" `
     -Action $action -Trigger $trigger -Principal $principal `
-    -Description "Еженедельное удаление профилей из '_Уволенные' старше 90 дней"
+    -Description "Weekly deletion of quarantined profiles older than 90 days"
 ```
 
-## Проверка задач
+## Verifying the tasks
 
-Посмотреть все свои задачи и их состояние:
+List all your tasks and their state:
 
 ```powershell
 Get-ScheduledTask -TaskName "kir_*" | Select-Object TaskName, State
 ```
 
-Посмотреть расписание и время последнего/следующего запуска конкретной задачи:
+Check the schedule and last/next run time for a specific task:
 
 ```powershell
 Get-ScheduledTaskInfo -TaskName "kir_Move-DisabledAccounts"
 ```
 
-Запустить задачу вручную, не дожидаясь расписания (полезно для теста):
+Run a task manually without waiting for its schedule (useful for testing):
 
 ```powershell
 Start-ScheduledTask -TaskName "kir_Move-DisabledAccounts"
 ```
 
-После ручного запуска стоит сразу посмотреть соответствующий лог в
-`C:\Scripts\move_disabled_accounts\`, чтобы убедиться, что задача
-действительно отработала от `СИСТЕМА`, имеет доступ к AD и корректно
-выполняет свою часть работы.
+After a manual run, check the corresponding log file under
+`C:\Scripts\move_disabled_accounts\` to confirm the task actually ran as
+`SYSTEM`, has AD access, and is doing its part correctly.
 
-## Переименование уже существующих задач
+## Renaming existing tasks
 
-Если задача была ранее зарегистрирована под другим именем, штатной команды
-`Rename` в модуле `ScheduledTasks` нет — задачу нужно экспортировать,
-удалить и зарегистрировать заново под новым именем:
+The `ScheduledTasks` module has no built-in `Rename` command. To rename a
+task that already exists, export it, unregister it, and re-register it
+under the new name:
 
 ```powershell
 function Rename-ScheduledTaskSafe {
@@ -101,7 +102,7 @@ function Rename-ScheduledTaskSafe {
     Unregister-ScheduledTask -TaskName $OldName -Confirm:$false
     Register-ScheduledTask -TaskName $NewName -Xml $xml | Out-Null
 
-    Write-Host "Переименовано: '$OldName' -> '$NewName'" -ForegroundColor Green
+    Write-Host "Renamed: '$OldName' -> '$NewName'" -ForegroundColor Green
 }
 
 Rename-ScheduledTaskSafe -OldName "Move-DisabledAccounts" -NewName "kir_Move-DisabledAccounts"
